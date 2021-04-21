@@ -21,5 +21,5 @@ This does the following:
 
 ### Fetching
 
-Run [fetch.py](fetch.py) to fetch the last 1000 papers from the arXiv feed.
+Run [fetch.py](fetch.py) to fetch today's papers from arXiv's OAI-PMH interface.
 Papers that are classified as software engineering but do not include `cs.SE` OR `cs.PL` tags are exported in an RSS feed.
