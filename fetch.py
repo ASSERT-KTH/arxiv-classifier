@@ -162,6 +162,7 @@ CATEGORIES = [
     "stat.TH",  # 	Statistics Theory
 ]
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 def single_line(s):
     return " ".join(s.split())
@@ -188,6 +189,7 @@ from simpletransformers.classification import ClassificationModel
 model = ClassificationModel(
     "roberta",
     "outputs/",
+    use_cuda=False,
     args={"train_batch_size": 64, "eval_batch_size": 64, "process_count": 8},
 )
 
