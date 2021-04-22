@@ -93,20 +93,21 @@ for pred, score, text, entry in zip(*entries):
     arxiv_id = entry["id"]
     label = entry["categories"]
     if pred and "cs.se" not in label.lower() and "cs.pl" not in label.lower():
+        abs_link = entry["link"]
+        abstract = entry["abstract"]
+        authors = entry["authors"]
+        pdf_link = abs_link.replace("/abs/", "/pdf/")
         score = softmax(score)
         title = entry["title"]
-        link = entry["link"].replace("/abs/", "/pdf/")
-        description = (
-            entry["abstract"]
-            + "<p>"
-            + f"score: {score[1]:.2f}"
-            + "<p>"
-            + entry["authors"]
-            + '</p><p><a href="'
-            + link
-            + '">'
-            + link
-            + "</a></p>"
+
+        description = f"""
+        {abstract}
+        <p>Authors: {authors}
+        <p><a href="{pdf_link}">{pdf_link}</a>
+        <p><a href="{abs_link}">{abs_link}</a>
+        <p>Categories: {label}
+        <p>score: {score[1]:.2f}
+        """.strip()
 
         args = dict(
             title=title,
