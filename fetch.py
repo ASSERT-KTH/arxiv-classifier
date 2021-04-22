@@ -71,9 +71,19 @@ entries = (
 )  # prediction label, score, arxiv text, arxiv label
 
 feed = feedgenerator.Rss201rev2Feed(
-    title="arXiv misclassified",
+    title="arXiv misclassified: all",
     link="http://export.arxiv.org/rss/",
-    description="arxiv misclassified",
+    description="Papers from arXiv that should be classifed cs.SE according to our model.",
+    language="en",
+)
+sub_categories = ("cs.AI", "cs.LG", "stat.ML")
+sub_categories_str = " ".join(sub_categories)
+feed_sub = feedgenerator.Rss201rev2Feed(
+    title="arXiv misclassified: " + sub_categories_str,
+    link="http://export.arxiv.org/rss/",
+    description="Papers from "
+    + sub_categories_str
+    + " that should be classifed cs.SE according to our model.",
     language="en",
 )
 
@@ -97,9 +107,20 @@ for pred, score, text, entry in zip(*entries):
             + '">'
             + link
             + "</a></p>"
+
+        args = dict(
+            title=title,
+            link=pdf_link,
+            description=description,
+            unique_id=pdf_link,
+            categories=label.split(),
         )
-        feed.add_item(title=title, link=link, description=description, unique_id=link)
+        feed.add_item(**args)
+        if any(sub in label for sub in sub_categories):
+            feed_sub.add_item(**args)
 
 os.makedirs("feed", exist_ok=True)
 with open("feed/feed.xml", "w") as f:
     print(feed.writeString("utf-8"), file=f)
+with open("feed/feed2.xml", "w") as f:
+    print(feed_sub.writeString("utf-8"), file=f)
