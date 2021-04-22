@@ -6,6 +6,7 @@ from datetime import datetime
 from glob import glob
 
 import feedgenerator
+import requests
 from scipy.special import softmax
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
@@ -100,14 +101,18 @@ for pred, score, text, entry in zip(*entries):
         score = softmax(score)
         title = entry["title"]
 
-        description = f"""
-        {abstract}
-        <p>Authors: {authors}
-        <p><a href="{pdf_link}">{pdf_link}</a>
-        <p><a href="{abs_link}">{abs_link}</a>
-        <p>Categories: {label}
-        <p>score: {score[1]:.2f}
-        """.strip()
+        r = requests.get(abs_link)
+        if r.ok:
+            description = r.text
+        else:
+            description = f"""
+            {abstract}
+            <p>Authors: {authors}
+            <p><a href="{pdf_link}">{pdf_link}</a>
+            <p><a href="{abs_link}">{abs_link}</a>
+            <p>Categories: {label}
+            <p>score: {score[1]:.2f}
+            """.strip()
 
         args = dict(
             title=title,
