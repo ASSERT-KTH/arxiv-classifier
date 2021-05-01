@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import logging
 import os
 import subprocess
 import xml.etree.ElementTree as ET
@@ -9,11 +10,18 @@ import feedgenerator
 import requests
 from scipy.special import softmax
 
+logging.basicConfig()
+log = logging.getLogger(__name__)
+
 
 def main():
     harvest_since_last_modification()
 
     entries = list(iter_load_entries_from_xml())
+    if not entries:
+        log.error("No new entries, is it the weekend?")
+        return
+
     texts = [
         single_line(entry["title"] + " abstract: " + entry["abstract"])
         for entry in entries
@@ -88,8 +96,10 @@ def harvest_since_last_modification():
     try:
         date = datetime.fromtimestamp(os.stat("feed/feed.xml").st_mtime)
     except OSError:
+        log.exception("Got OSError when trying to stat feed file:")
         date = datetime.today()
     date = date.strftime("%Y-%m-%d")
+    log.info("Harvesting since %s", date)
     subprocess.run(
         f"rm -rf data && mkdir data && cd data && oai-harvest 'http://export.arxiv.org/oai2' --from {date} -p arXiv",
         check=True,
@@ -112,6 +122,10 @@ def iter_load_entries_from_xml():
         if all(tag in d for tag in tags):  # Sanity check: valid entry
             d["link"] = f"https://arxiv.org/abs/{d['id']}"
             yield d
+        else:
+            log.warning(
+                "File %s is not complete, contains keys: %s", fname, list(d.keys())
+            )
 
 
 def el_text(el):
@@ -133,6 +147,8 @@ def load_model():
     from simpletransformers.classification import ClassificationModel
 
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+    log.debug("Loading ClassificationModel")
     return ClassificationModel(
         "roberta",
         "outputs/",
