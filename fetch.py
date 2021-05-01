@@ -11,7 +11,7 @@ from scipy.special import softmax
 
 
 def main():
-    harvest_today()
+    harvest_since_last_modification()
 
     entries = list(iter_load_entries_from_xml())
     texts = [
@@ -84,8 +84,12 @@ def main():
         print(feed_sub.writeString("utf-8"), file=f)
 
 
-def harvest_today():
-    date = datetime.today().strftime("%Y-%m-%d")
+def harvest_since_last_modification():
+    try:
+        date = datetime.fromtimestamp(os.stat("feed/feed.xml").st_mtime)
+    except OSError:
+        date = datetime.today()
+    date = date.strftime("%Y-%m-%d")
     subprocess.run(
         f"rm -rf data && mkdir data && cd data && oai-harvest 'http://export.arxiv.org/oai2' --from {date} -p arXiv",
         check=True,
