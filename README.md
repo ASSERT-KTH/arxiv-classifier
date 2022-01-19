@@ -1,6 +1,8 @@
-# arxiv-classifier
+# ML based Arxiv RSS feeds
 
-Finds software engineering papers in arXiv that do not include the cs.SE tag.
+This project aims at providing a feed of Arxiv papers on a given topic, not relying on the category metadata, but based on a classifier. 
+
+For example, it's primary usage is to find those software engineering papers in arXiv that do not include the cs.SE tag.
 
 ## Preparing
 
