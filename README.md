@@ -8,11 +8,13 @@ For example, it's primary usage is to find those software engineering papers in 
 
 Install dependencies with `pip install -r requirements.txt`.
 
-To train a new model, download the arxiv dataset from Kaggle: <https://www.kaggle.com/Cornell-University/arxiv> and extract `arxiv-metadata-oai-snapshot.json` in the current directory.
+Download the already trained model at <https://github.com/kth-tcs/arxiv-classifier/releases/download/v0/model.tar.bzip2> and uncompress it. This creates a folder `outputs`.
 
 ## Running
 
 ### Training
+
+To train a new model, download the arxiv dataset from Kaggle: <https://www.kaggle.com/Cornell-University/arxiv> and extract `arxiv-metadata-oai-snapshot.json` in the current directory.
 
 Run [train.py](train.py) to train a new model with most recent data.
 This does the following:
