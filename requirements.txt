@@ -2,3 +2,5 @@ feedgenerator
 oaiharvest
 requests
 simpletransformers
+setuptools_rust
+torch
