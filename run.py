@@ -1,11 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import logging
 import os
 import subprocess
 import xml.etree.ElementTree as ET
 from datetime import datetime
-from glob import glob
-
+import glob
+import sys
 import feedgenerator
 import requests
 from scipy.special import softmax
@@ -16,18 +16,43 @@ log = logging.getLogger(__name__)
 
 def main():
     harvest_since_last_modification()
+    classify()
 
+def classify(category):
+    model = load_model()
+    i=0
+    for entry in iter_load_entries_from_xml():
+        output_file = entry['file']+".class.txt"
+        # TODO: batch predictions, it will go much faster
+        if not os.path.exists(output_file):
+            i+=1
+            # bounding the number of predictions
+            if i>10000: 
+                print("max number of classifications reached")
+                return
+            texts = [
+                single_line(entry["title"] + " abstract: " + entry["abstract"]) ]        
+            pred, score = model.predict(texts) 
+            
+            title = entry["title"].replace('\n',' ')
+            with open(output_file,"w") as f: f.write(str(pred[0])+" "+title)
+            print(i,"\r", end="")
+            if pred[0] == 1 and  category not in entry["categories"].lower():
+                # this is the most simple console output
+                print(i, title,entry["link"])
+            #print(pred, score)
+        else:
+            # already predicted
+            pass
+
+def generate_feed(category):
+    model = load_model()
     entries = list(iter_load_entries_from_xml())
-    if not entries:
-        log.error("No new entries, is it the weekend?")
-        return
-
     texts = [
         single_line(entry["title"] + " abstract: " + entry["abstract"])
         for entry in entries
     ]
 
-    model = load_model()
     entries = (
         *model.predict(texts),
         texts,
@@ -37,17 +62,7 @@ def main():
     feed = feedgenerator.Rss201rev2Feed(
         title="arXiv misclassified: all",
         link="http://export.arxiv.org/rss/",
-        description="Papers from arXiv that should be classifed cs.SE according to our model.",
-        language="en",
-    )
-    sub_categories = ("cs.AI", "cs.LG", "stat.ML")
-    sub_categories_str = " ".join(sub_categories)
-    feed_sub = feedgenerator.Rss201rev2Feed(
-        title="arXiv misclassified: " + sub_categories_str,
-        link="http://export.arxiv.org/rss/",
-        description="Papers from "
-        + sub_categories_str
-        + " that should be classifed cs.SE according to our model.",
+        description="Papers from arXiv that look like "+category+".",
         language="en",
     )
 
@@ -82,26 +97,19 @@ def main():
                 categories=label.split(),
             )
             feed.add_item(**args)
-            if any(sub in label for sub in sub_categories):
-                feed_sub.add_item(**args)
+
 
     os.makedirs("feed", exist_ok=True)
     with open("feed/feed.xml", "w") as f:
         print(feed.writeString("utf-8"), file=f)
-    with open("feed/feed2.xml", "w") as f:
-        print(feed_sub.writeString("utf-8"), file=f)
 
 
-def harvest_since_last_modification():
-    try:
-        date = datetime.fromtimestamp(os.stat("feed/feed.xml").st_mtime)
-    except OSError:
-        log.exception("Got OSError when trying to stat feed file:")
-        date = datetime.today()
-    date = date.strftime("%Y-%m-%d")
+
+def harvest_since_last_modification(date = datetime.today()):
+    formatted_date = date.strftime("%Y-%m-%d")
     log.info("Harvesting since %s", date)
     subprocess.run(
-        f"rm -rf data && mkdir data && cd data && oai-harvest 'http://export.arxiv.org/oai2' --from {date} -p arXiv",
+        f"mkdir -p data && oai-harvest 'http://export.arxiv.org/oai2' --dir data --from {formatted_date} -p arXiv",
         check=True,
         shell=True,
     )
@@ -110,9 +118,9 @@ def harvest_since_last_modification():
 def iter_load_entries_from_xml():
     tags = ("abstract", "authors", "categories", "id", "title")
 
-    for fname in glob("data/*.xml"):
+    for fname in glob.iglob("data/*.xml"):
         root = ET.parse(fname).getroot()
-        d = {}
+        d = {"file":fname}
         for el in root:
             tag = el.tag
             for wanted_tag in tags:
@@ -153,9 +161,14 @@ def load_model():
         "roberta",
         "outputs/",
         use_cuda=False,
-        args={"train_batch_size": 64, "eval_batch_size": 64, "process_count": 8},
+        args={"train_batch_size": 64, "eval_batch_size": 64, "process_count": 8, "silent":True},
     )
 
 
 if __name__ == "__main__":
-    main()
+    if sys.argv[1] == "fetch":
+        harvest_since_last_modification(datetime.utcfromtimestamp(max([os.path.getmtime(x) for x in glob.iglob("data/*")])))
+    if sys.argv[1] == "classify":
+        classify(sys.argv[2])
+    if sys.argv[1] == "feed":
+        generate_feed(sys.argv[2])
