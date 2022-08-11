@@ -36,7 +36,7 @@ def classify(category):
             
             title = entry["title"].replace('\n',' ')
             with open(output_file,"w") as f: f.write(str(pred[0])+" "+title)
-            print(i,"\r", end="")
+            #print(i,"\r", end="")
             if pred[0] == 1 and  category not in entry["categories"].lower():
                 # this is the most simple console output
                 print(i, title,entry["link"])
@@ -167,7 +167,9 @@ def load_model():
 
 if __name__ == "__main__":
     if sys.argv[1] == "fetch":
-        harvest_since_last_modification(datetime.utcfromtimestamp(max([os.path.getmtime(x) for x in glob.iglob("data/*")])))
+        files = [os.path.getmtime(x) for x in glob.iglob("data/*")]
+        timestamp = datetime.utcfromtimestamp(max(files)) if len(files)>0 else datetime.today()
+        harvest_since_last_modification(timestamp)
     if sys.argv[1] == "classify":
         classify(sys.argv[2])
     if sys.argv[1] == "feed":
